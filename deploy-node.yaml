@@ -10,18 +10,29 @@
           - nodejs
           - npm
 
+- name: Create new linux user for nodejs
+  hosts: 167.71.139.136
+  tasks:
+    - name: Create Linux User
+      user:
+        name: nodejs
+        comment: nodejs user
+        group: admin
+
 - name: Deploy nodejs app
   hosts: 167.71.139.136
+  become: True
+  become_user: nodejs
   tasks:
     - name: unpack the nodejs tar file
       unarchive:            # copy over and extract the tar file
         src: /Users/ausman/ansible/nodejs-app/nodejs-app-1.0.0.tgz 
-        dest: /root/                      # destination folder
+        dest: /home/nodejs/                      # destination folder
     - name: Install dependencies   # npm install
       community.general.npm:
-        path: /root/package  # location directory of package.json
+        path: /home/nodejs/package  # location directory of package.json
     - name: Start application  # node /root/package/app/server.js
-      command: node /root/package/app/server
+      command: node /home/nodejs/package/app/server
       async: 1000    #to make node server.js run in the background, like node server.js &
       poll: 0
     - name: Ensure app is running!
