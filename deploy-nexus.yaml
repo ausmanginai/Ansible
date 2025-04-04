@@ -1,6 +1,6 @@
 ---
 - name: Install java and net-tools
-  hosts: 64.227.40.128
+  hosts: nexus_server
   tasks:
     - name: update apt repo and cache     
       apt: update_cache=yes force_apt_get=yes cache_valid_time=3600
@@ -10,8 +10,13 @@
       apt: name=net-tools
 
 - name: Download and unpack Nexus installer
-  hosts: 64.227.40.128
+  hosts: nexus_server
   tasks:
+    - name: Check nexus folder stats
+      stat:
+        path: /opt/nexus
+      register: stat_result
+    #- debug: msg={{stat_result}}
     - name: Download Nexus
       get_url: 
         url: https://download.sonatype.com/nexus/3/nexus-unix-x86-64-3.79.0-09.tar.gz
@@ -21,6 +26,7 @@
         src: /opt/nexus-unix-x86-64-3.79.0-09.tar.gz
         dest: /opt/
         remote_src: True
+      when: not stat_result.stat.exists
     - name: Find nexus folder
       find: 
         paths: /opt/
@@ -28,11 +34,66 @@
         file_type: directory
       register: find_result
     #- debug: msg={{find_result}}
-    - name: Check nexus folder stats
-      stat:
-        path: /opt/nexus
-      register: stat_result
-    #- debug: msg={{stat_result}}
     - name: Rename nexus folder
       shell: mv {{find_result.files[0].path}} /opt/nexus
       when: not stat_result.stat.exists
+
+- name: Create Nexus user, and give ownership to nexus folders
+  hosts: nexus_server
+  tasks:
+    - name: Create Nexus group / ensure group nexus exists
+      group: 
+        name: nexus
+        state: present
+    - name: Create nexus user
+      user:
+        name: nexus
+        group: nexus
+    - name: Give nexus user ownership of nexus folder
+      file:
+        path: /opt/nexus
+        state: directory
+        owner: nexus
+        group: nexus
+        recurse: yes
+    - name: Give nexus user ownership of sonatype folder
+      file:
+        path: /opt/sonatype-work
+        state: directory
+        owner: nexus
+        group: nexus
+        recurse: yes
+
+- name: Start nexus with nexus user
+  hosts: nexus_server
+  become: True
+  become_user: nexus
+  tasks:
+    - name: Set run_as_user nexus
+      lineinfile:
+        path: /opt/nexus/bin/nexus
+        regexp: '^run_as_user=''' # this is the line to replace
+        line: run_as_user=nexus # the replacement
+    - name: Start nexus
+      command: /opt/nexus/bin/nexus start
+    #- name: Start Nexus using systemd service
+    #  systemd:
+    #    name: nexus
+    #    state: started
+    #    enabled: yes
+
+- name: Verify nexus is running
+  hosts: nexus_server
+  tasks:
+    - name: Check with ps
+      shell: ps aux | grep nexus
+      register: app_status   
+    - debug: msg={{app_status.stdout_lines}} # print app_status, but only stdout_lines
+    - name: Wait for one minute # to be able to see 8081 in netstat result (it takes time to come up)
+      pause:
+        minutes: 1
+    - name: Check with netstat
+      shell: netstat -lnpt
+      register: app_status
+    - debug: msg={{app_status.stdout_lines}}
+
