@@ -1,0 +1,55 @@
+---
+- name: Install Docker
+  hosts: docker_server
+  become: yes # by default become_user: root. Must run yum command as root user. 
+  tasks:
+    - name: Install Docker
+      yum: 
+        name: docker
+        update_cache: yes # doesnt require an extra task like in apt
+        state: present
+
+- name: Install docker-compose
+  hosts: docker_server
+  tasks:
+    - name: Create docker-compose directory
+      file: 
+        path: ~/.docker/cli-plugins
+        state: directory
+    - name: Get architecture of remote machine
+      shell: uname -m
+      register: remote_arch
+    - name: Install docker-compose
+      get_url: 
+        url: "https://github.com/docker/compose/releases/latest/download/docker-compose-linux-{{remote_arch.stdout}}"
+        dest: ~/.docker/cli-plugins/docker-compose
+        mode: +x
+
+- name: Start docker 
+  hosts: docker_server
+  become: yes
+  tasks:
+    - name: Start docker daemon
+      systemd:
+        name: docker
+        state: started
+
+- name: Add ec2-user to docker group
+  hosts: docker_server
+  become: yes
+  tasks:
+    - name: Add to group
+      user: 
+        name: ec2-user
+        groups: docker
+        append: yes # add to existing list of groups
+    - name: Reconnect to server, for change to take effect
+      meta: reset_connection
+
+- name: Test docker pull
+  hosts: docker_server
+  tasks:
+    - name: Pull redis to test that docker commands can run
+      docker_image: 
+        name: redis
+        source: pull
