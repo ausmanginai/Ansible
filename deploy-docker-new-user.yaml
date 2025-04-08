@@ -1,0 +1,70 @@
+---
+- name: Install Docker
+  hosts: docker_server
+  become: yes # by default become_user: root. Must run yum command as root user. 
+  tasks:
+    - name: Install Docker
+      yum: 
+        name: docker
+        update_cache: yes # doesnt require an extra task like in apt
+        state: present
+
+- name: Install docker-compose
+  hosts: docker_server
+  become: yes
+  become_user: ausman
+  tasks:
+    - name: Create docker-compose directory
+      file: 
+        path: ~/.docker/cli-plugins
+        state: directory
+    - name: Get architecture of remote machine
+      shell: uname -m
+      register: remote_arch
+    - name: Install docker-compose
+      get_url: 
+        url: "https://github.com/docker/compose/releases/latest/download/docker-compose-linux-{{remote_arch.stdout}}"
+        dest: ~/.docker/cli-plugins/docker-compose
+        mode: +x
+
+- name: Start docker 
+  hosts: docker_server
+  become: yes
+  tasks:
+    - name: Start docker daemon
+      systemd:
+        name: docker
+        state: started
+
+- name: Create new linux user # instead of using ec2-user
+  hosts: docker_server
+  become: yes
+  tasks:
+    - name: create new linux user
+      user:
+        name: ausman
+        groups: adm,docker # no need for reset connection as we are making a new group and that is effective immediately
+
+
+- name: Start Docker Containers, from a docker-compose file
+  hosts: docker_server
+  become: yes
+  become_user: ausman
+  vars_prompt:
+    - name: docker_password
+      prompt: Enter password for docker registry
+  tasks:
+    - name: Copy docker-compose file to remote server
+      copy:
+        src: /Users/ausman/docker-exercises-7/ansible-java_mysql_phpmyadmin.yaml
+        dest: /home/ausman/docker-compose.yaml
+    - name: Docker login
+      docker_login:
+        username: ausman96
+        password: "{{docker_password}}"
+    - name: Start containers with docker compose
+      community.docker.docker_compose_v2:  # need full module name as there are two docker compose modules
+        project_src: /home/ausman
+        state: present # docker compose up
+
+
