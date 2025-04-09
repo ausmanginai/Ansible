@@ -1,6 +1,21 @@
 ---
+- name: Check SSH connection is possible
+  hosts: all
+  gather_facts: False
+  tasks:
+    - name: Ensure SSH port open
+      wait_for: 
+        port: 22
+        delay: 20
+        timeout: 100
+        search_regex: OpenSSH
+        host: '{{ (ansible_ssh_host|default(ansible_host))|default(inventory_hostname) }}'
+      vars:
+        ansible_connection: local
+        ansible_python_interpreter: /usr/bin/python3
+
 - name: Install Docker
-  hosts: docker_server
+  hosts: all
   become: yes # by default become_user: root. Must run yum command as root user. 
   tasks:
     - name: Install Docker
@@ -9,8 +24,17 @@
         update_cache: yes # doesnt require an extra task like in apt
         state: present
 
+- name: Create new linux user # instead of using ec2-user
+  hosts: all
+  become: yes
+  tasks:
+    - name: create new linux user
+      user:
+        name: ausman
+        groups: adm,docker # no need for reset connection as we are making a new group and that is effective immediately
+
 - name: Install docker-compose
-  hosts: docker_server
+  hosts: all
   become: yes
   become_user: ausman
   tasks:
@@ -28,7 +52,7 @@
         mode: +x
 
 - name: Start docker 
-  hosts: docker_server
+  hosts: all
   become: yes
   tasks:
     - name: Start docker daemon
@@ -36,23 +60,16 @@
         name: docker
         state: started
 
-- name: Create new linux user # instead of using ec2-user
-  hosts: docker_server
-  become: yes
-  tasks:
-    - name: create new linux user
-      user:
-        name: ausman
-        groups: adm,docker # no need for reset connection as we are making a new group and that is effective immediately
-
 
 - name: Start Docker Containers, from a docker-compose file
-  hosts: docker_server
+  hosts: all
   become: yes
   become_user: ausman
-  vars_prompt:
-    - name: docker_password
-      prompt: Enter password for docker registry
+  vars_files:
+    - project-vars
+  #vars_prompt:
+  #  - name: docker_password
+  #    prompt: Enter password for docker registry
   tasks:
     - name: Copy docker-compose file to remote server
       copy:
@@ -66,5 +83,4 @@
       community.docker.docker_compose_v2:  # need full module name as there are two docker compose modules
         project_src: /home/ausman
         state: present # docker compose up
-
 
