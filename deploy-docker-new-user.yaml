@@ -62,7 +62,7 @@
 
 
 - name: Start Docker Containers, from a docker-compose file
-  hosts: aws_ec2
+  hosts: _Name_dev_server
   become: yes
   become_user: ausman
   vars_files:
