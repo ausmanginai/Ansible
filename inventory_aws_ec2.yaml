@@ -2,3 +2,7 @@
 plugin: aws_ec2
 regions:
   - eu-west-2
+keyed_groups:
+  - key: tags
+  - key: instance_type
+    prefix: instance_type
