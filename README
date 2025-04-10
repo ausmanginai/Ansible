@@ -2,4 +2,4 @@ Here I have multiple Ansible playbooks. Each playbook represents a different pro
 Includes a playbook used to run Docker applications on a new remote server!
 
 All Ansible chapter content is here. 'deploy-docker-new-user.yaml' goes hand in hand with
- the terraform branch 'feature/terraform-ansible-DeployToEC2'
+ the terraform branch 'feature/terraform-ansible-deployToEC2'
