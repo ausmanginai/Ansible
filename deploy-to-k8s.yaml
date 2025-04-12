@@ -1,0 +1,29 @@
+---
+- name: Deploy app in new namespace
+  hosts: localhost # executing locally, connecting to k8s cluster
+  tasks:
+    - name: Create a k8s namespace
+      kubernetes.core.k8s:  # k8s module
+        name: myapp
+        api_version: v1
+        kind: Namespace
+        state: present
+        kubeconfig: /Users/ausman/terraform/kubeconfig_myapp-eks-cluster # need this to know which cluster, and how to connect to cluster
+    - name: deploy nginx deployment
+      kubernetes.core.k8s:
+        src: /Users/ausman/nginx-deployment.yaml
+        state: present
+        kubeconfig: /Users/ausman/terraform/kubeconfig_myapp-eks-cluster
+        namespace: myapp # ns can be set here, instead of hard coding in manifest file
+    - name: deploy nginx service
+      kubernetes.core.k8s:
+        src: /Users/ausman/nginx-service.yaml    
+        state: present
+        kubeconfig: /Users/ausman/terraform/kubeconfig_myapp-eks-cluster
+        namespace: myapp
+
+
+
+
+
+
