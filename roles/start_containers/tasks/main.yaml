@@ -1,11 +1,12 @@
 - name: Copy docker-compose file to remote server
   copy:
-    src: /Users/ausman/docker-exercises-7/ansible-java_mysql_phpmyadmin.yaml
+    src: ansible-java_mysql_phpmyadmin.yaml
     dest: /home/ausman/docker-compose.yaml
 
 - name: Docker login
   docker_login:
-    username: ausman96
+    registry_url: "{{docker_registry}}"
+    username: "{{docker_username}}"
     password: "{{docker_password}}"
         
 - name: Start containers with docker compose

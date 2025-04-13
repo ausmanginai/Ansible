@@ -2,4 +2,4 @@ version: 1.0.0
 location: /Users/ausman/ansible/nodejs-app
 linux_name: nodejs
 destination: /home/{{linux_name}}
-docker_password: gobidobi!
+docker_password: "gobidobi!"

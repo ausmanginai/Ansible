@@ -1,0 +1,30 @@
+version: '3'
+services:
+  mysql:
+    image: mysql
+    ports:
+      - 3306:3306
+    environment:
+      - MYSQL_ROOT_PASSWORD=root
+      - MYSQL_DATABASE=mysqldb
+      - MYSQL_USER=jimmo
+      - MYSQL_PASSWORD=gobi
+    volumes:
+      - mysqlvolume:/var/lib/mysql
+  phpmyadmin:
+    image: phpmyadmin
+    ports:
+      - 8083:80
+    environment:
+      - PMA_HOST=mysql
+  javaapp:
+    image: ausman96/ausmandev:mysql-project
+    ports:
+      - 8081:8080
+    environment:
+      - DB_USER=jimmo
+      - DB_PWD=gobi
+      - DB_SERVER=mysql
+      - DB_NAME=mysqldb
+volumes:
+  mysqlvolume:
